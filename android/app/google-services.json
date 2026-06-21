@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "476890397528",
+    "firebase_url": "https://optic-tv-default-rtdb.firebaseio.com",
+    "project_id": "optic-tv",
+    "storage_bucket": "optic-tv.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:476890397528:android:686fd33131e46dfd8f432d",
+        "android_client_info": {
+          "package_name": "com.kobani4k.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvNllsitniHSvzTIKiH74EqgCrHqB5xJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:476890397528:android:b848d70d15c2e7b28f432d",
+        "android_client_info": {
+          "package_name": "com.optic.iptv"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvNllsitniHSvzTIKiH74EqgCrHqB5xJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
