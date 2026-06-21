@@ -20,6 +20,13 @@ class Home extends ConsumerStatefulWidget {
 class _HomeState extends ConsumerState<Home> {
   int _navIndex = 0; // 0: Live, 1: Movies, 2: Series, 3: Settings
   String? _selectedCategory;
+  final FocusNode _firstCategoryFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _firstCategoryFocusNode.dispose();
+    super.dispose();
+  }
 
   List<Channel> _getFilteredChannels(List<Channel> all) {
     if (_navIndex == 0) {
@@ -123,21 +130,30 @@ class _HomeState extends ConsumerState<Home> {
             label: 'LIVE',
             isSelected: _navIndex == 0,
             onFocus: () => setState(() { _navIndex = 0; _selectedCategory = null; }),
-            onTap: () => setState(() { _navIndex = 0; _selectedCategory = null; }),
+            onTap: () {
+              setState(() { _navIndex = 0; _selectedCategory = null; });
+              _firstCategoryFocusNode.requestFocus();
+            },
           ),
           _SidebarItem(
             icon: Icons.movie_creation_rounded,
             label: 'MOVIES',
             isSelected: _navIndex == 1,
             onFocus: () => setState(() { _navIndex = 1; _selectedCategory = null; }),
-            onTap: () => setState(() { _navIndex = 1; _selectedCategory = null; }),
+            onTap: () {
+              setState(() { _navIndex = 1; _selectedCategory = null; });
+              _firstCategoryFocusNode.requestFocus();
+            },
           ),
           _SidebarItem(
             icon: Icons.video_library_rounded,
             label: 'SERIES',
             isSelected: _navIndex == 2,
             onFocus: () => setState(() { _navIndex = 2; _selectedCategory = null; }),
-            onTap: () => setState(() { _navIndex = 2; _selectedCategory = null; }),
+            onTap: () {
+              setState(() { _navIndex = 2; _selectedCategory = null; });
+              _firstCategoryFocusNode.requestFocus();
+            },
           ),
           const Spacer(),
           _SidebarItem(
@@ -181,6 +197,7 @@ class _HomeState extends ConsumerState<Home> {
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 return _CategoryItem(
+                  focusNode: index == 0 ? _firstCategoryFocusNode : null,
                   title: cat,
                   isSelected: _selectedCategory == cat,
                   onFocus: () => setState(() => _selectedCategory = cat),
@@ -413,12 +430,14 @@ class _SidebarItemState extends State<_SidebarItem> {
 }
 
 class _CategoryItem extends StatefulWidget {
+  final FocusNode? focusNode;
   final String title;
   final bool isSelected;
   final VoidCallback onFocus;
   final VoidCallback onTap;
 
   const _CategoryItem({
+    this.focusNode,
     required this.title,
     required this.isSelected,
     required this.onFocus,
@@ -431,12 +450,19 @@ class _CategoryItem extends StatefulWidget {
 
 class _CategoryItemState extends State<_CategoryItem> {
   bool _isFocused = false;
+  late FocusNode _localFocusNode;
 
-  final FocusNode _focusNode = FocusNode();
+  @override
+  void initState() {
+    super.initState();
+    _localFocusNode = widget.focusNode ?? FocusNode();
+  }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (widget.focusNode == null) {
+      _localFocusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -458,7 +484,7 @@ class _CategoryItemState extends State<_CategoryItem> {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      focusNode: _focusNode,
+      focusNode: _localFocusNode,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
         if (focused) widget.onFocus();
@@ -546,54 +572,74 @@ class _ChannelCardState extends State<_ChannelCard> {
       child: GestureDetector(
         onTap: _navigateToPlayer,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          transform: _isFocused ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity(),
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          transform: _isFocused ? (Matrix4.identity()..scale(1.08)) : Matrix4.identity(),
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.black45,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _isFocused ? Colors.amber : Colors.white.withOpacity(0.1),
-              width: _isFocused ? 3 : 1,
+              color: _isFocused ? Colors.white : Colors.transparent,
+              width: _isFocused ? 3 : 0,
             ),
-            boxShadow: _isFocused ? [const BoxShadow(color: Colors.amber, blurRadius: 12, spreadRadius: 1)] : [],
+            boxShadow: _isFocused 
+                ? [const BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 10))] 
+                : [],
           ),
-          child: Column(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(13),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Glassmorphism Background
+                Container(color: Colors.white.withOpacity(0.03)),
+                
+                // Channel Image
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: CachedNetworkImage(
+                    imageUrl: widget.channel.logo ?? '',
+                    fit: BoxFit.contain,
+                    errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white12, size: 50),
+                  ),
+                ),
+
+                // Bottom Gradient Overlay for text readability
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  height: 80,
                   child: Container(
-                    color: Colors.white.withOpacity(0.05),
-                    padding: const EdgeInsets.all(16),
-                    child: CachedNetworkImage(
-                      imageUrl: widget.channel.logo ?? '',
-                      fit: BoxFit.contain,
-                      errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          _isFocused ? Colors.blueGrey.shade900 : Colors.black.withOpacity(0.9),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _isFocused ? Colors.amber : Colors.black87,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
-                ),
-                child: Center(
+
+                // Channel Name Text
+                Positioned(
+                  bottom: 12, left: 12, right: 12,
                   child: Text(
                     widget.channel.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _isFocused ? Colors.black : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      color: _isFocused ? Colors.white : Colors.white70,
+                      fontWeight: _isFocused ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 15,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
