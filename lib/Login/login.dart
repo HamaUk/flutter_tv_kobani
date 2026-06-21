@@ -8,7 +8,7 @@ import '../main.dart';
 import '../services/login_codes_service.dart';
 
 class Login extends ConsumerStatefulWidget {
-  const Login({Key? key}) : super(key: key);
+  const Login({super.key});
 
   @override
   ConsumerState<Login> createState() => _LoginState();
@@ -157,7 +157,6 @@ class _LoginState extends ConsumerState<Login> {
 
                             // Login Button
                             _TvFocusableButton(
-                              autofocus: false,
                               onPressed: _isLoading ? null : _login,
                               child: _isLoading
                                   ? const SizedBox(
@@ -223,7 +222,7 @@ class _LoginState extends ConsumerState<Login> {
   }
 }
 
-// ─── TV-safe keypad button using RawKeyboardListener (Flutter 3.3 compatible) ───
+// ─── TV D-Pad compatible keypad button ───
 class _TvKeypadButton extends StatefulWidget {
   final String? text;
   final IconData? icon;
@@ -233,14 +232,13 @@ class _TvKeypadButton extends StatefulWidget {
   final bool autofocus;
 
   const _TvKeypadButton({
-    Key? key,
     this.text,
     this.icon,
     required this.onPressed,
     this.color,
     this.textColor,
     this.autofocus = false,
-  }) : super(key: key);
+  });
 
   @override
   State<_TvKeypadButton> createState() => _TvKeypadButtonState();
@@ -256,6 +254,7 @@ class _TvKeypadButtonState extends State<_TvKeypadButton> {
     super.dispose();
   }
 
+  // Handles D-pad "Select/OK" button press on TV remotes
   KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
     if (event is RawKeyDownEvent) {
       final key = event.logicalKey;
@@ -315,18 +314,15 @@ class _TvKeypadButtonState extends State<_TvKeypadButton> {
   }
 }
 
-// ─── TV-safe focusable login button ───
+// ─── TV D-Pad compatible login button ───
 class _TvFocusableButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final Widget child;
-  final bool autofocus;
 
   const _TvFocusableButton({
-    Key? key,
     required this.onPressed,
     required this.child,
-    this.autofocus = false,
-  }) : super(key: key);
+  });
 
   @override
   State<_TvFocusableButton> createState() => _TvFocusableButtonState();
@@ -361,7 +357,6 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
   Widget build(BuildContext context) {
     return Focus(
       focusNode: _focusNode,
-      autofocus: widget.autofocus,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
       onKey: _handleKey,
       child: GestureDetector(
