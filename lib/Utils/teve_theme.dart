@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:teve/Utils/error_page.dart';
+import 'error_page.dart';
 
 class TeveTheme {
   static const Color darkBlue = Color(0xff1A1726);

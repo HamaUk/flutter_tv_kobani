@@ -109,7 +109,15 @@ class _LoginState extends ConsumerState<Login> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Image.asset('assets/images/flut.png', height: 80),
+                            const Text(
+                              'KOBANI 4K',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 2,
+                              ),
+                            ),
                             const SizedBox(height: 8),
                             const Text(
                               'Enter your activation code',
