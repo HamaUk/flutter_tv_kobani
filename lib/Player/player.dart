@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:better_player/better_player.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:teve/Utils/teve_theme.dart';
+import '../Utils/teve_theme.dart';
 
 class Player extends StatefulWidget {
   Player({super.key, required this.video_url});
