@@ -24,8 +24,6 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.evaluationDependsOn(':app')
-    
     // AGP 8.0+ requires a namespace for all libraries.
     // Many older Flutter plugins don't declare it, so we inject it.
     afterEvaluate { project ->
@@ -37,6 +35,10 @@ subprojects {
             }
         }
     }
+}
+
+subprojects {
+    project.evaluationDependsOn(':app')
 }
 
 task clean(type: Delete) {
