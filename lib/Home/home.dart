@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/channel.dart';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../Player/player.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -374,63 +375,99 @@ class _ChannelCard extends StatefulWidget {
 class _ChannelCardState extends State<_ChannelCard> {
   bool _isFocused = false;
 
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        _navigateToPlayer();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _navigateToPlayer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          body: Player(video_url: widget.channel.url),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Focus(
+      focusNode: _focusNode,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onTap: () {
-        // TODO: Navigate to player
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: _isFocused ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity(),
-        transformAlignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.black45,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isFocused ? Colors.amber : Colors.white.withOpacity(0.1),
-            width: _isFocused ? 3 : 1,
+      onKey: _handleKey,
+      child: GestureDetector(
+        onTap: _navigateToPlayer,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          transform: _isFocused ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity(),
+          transformAlignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.black45,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isFocused ? Colors.amber : Colors.white.withOpacity(0.1),
+              width: _isFocused ? 3 : 1,
+            ),
+            boxShadow: _isFocused ? [const BoxShadow(color: Colors.amber, blurRadius: 12, spreadRadius: 1)] : [],
           ),
-          boxShadow: _isFocused ? [const BoxShadow(color: Colors.amber, blurRadius: 12, spreadRadius: 1)] : [],
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                child: Container(
-                  color: Colors.white.withOpacity(0.05),
-                  padding: const EdgeInsets.all(16),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.channel.logo ?? '',
-                    fit: BoxFit.contain,
-                    errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40),
+          child: Column(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: Container(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.all(16),
+                    child: CachedNetworkImage(
+                      imageUrl: widget.channel.logo ?? '',
+                      fit: BoxFit.contain,
+                      errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _isFocused ? Colors.amber : Colors.black87,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
-              ),
-              child: Center(
-                child: Text(
-                  widget.channel.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _isFocused ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _isFocused ? Colors.amber : Colors.black87,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                ),
+                child: Center(
+                  child: Text(
+                    widget.channel.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _isFocused ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
