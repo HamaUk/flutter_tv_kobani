@@ -226,21 +226,94 @@ class _HomeState extends ConsumerState<Home> {
           const SizedBox(height: 24),
           const Text('Settings', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 40),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            ),
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text('LOGOUT', style: TextStyle(color: Colors.white, fontSize: 18)),
+          _TvSettingsButton(
+            icon: Icons.logout,
+            label: 'LOGOUT',
+            color: Colors.redAccent,
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('auth_code');
               ref.read(authStateProvider.notifier).state = false;
               ref.read(authCodeProvider.notifier).state = null;
             },
-          )
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _TvSettingsButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _TvSettingsButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  State<_TvSettingsButton> createState() => _TvSettingsButtonState();
+}
+
+class _TvSettingsButtonState extends State<_TvSettingsButton> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _focusNode,
+      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      onKey: _handleKey,
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          decoration: BoxDecoration(
+            color: widget.color,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFocused ? Colors.white : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: _isFocused ? [BoxShadow(color: widget.color, blurRadius: 15, spreadRadius: 2)] : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(widget.label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -268,44 +341,71 @@ class _SidebarItem extends StatefulWidget {
 class _SidebarItemState extends State<_SidebarItem> {
   bool _isFocused = false;
 
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Focus(
+      focusNode: _focusNode,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
         if (focused) widget.onFocus();
       },
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: widget.isSelected ? Colors.amber : Colors.transparent,
-              width: 4,
-            ),
-          ),
-          color: _isFocused ? Colors.white.withOpacity(0.1) : Colors.transparent,
-        ),
-        child: Column(
-          children: [
-            Icon(
-              widget.icon,
-              color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.label,
-              style: TextStyle(
-                color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+      onKey: _handleKey,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: widget.isSelected ? Colors.amber : Colors.transparent,
+                width: 4,
               ),
             ),
-          ],
+            color: _isFocused ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          ),
+          child: Column(
+            children: [
+              Icon(
+                widget.icon,
+                color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
+                size: 28,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -332,30 +432,57 @@ class _CategoryItem extends StatefulWidget {
 class _CategoryItemState extends State<_CategoryItem> {
   bool _isFocused = false;
 
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Focus(
+      focusNode: _focusNode,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
         if (focused) widget.onFocus();
       },
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: _isFocused 
-              ? Colors.amber 
-              : (widget.isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          widget.title,
-          style: TextStyle(
-            color: _isFocused ? Colors.black : (widget.isSelected ? Colors.amber : Colors.white70),
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+      onKey: _handleKey,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: _isFocused 
+                ? Colors.amber 
+                : (widget.isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            widget.title,
+            style: TextStyle(
+              color: _isFocused ? Colors.black : (widget.isSelected ? Colors.amber : Colors.white70),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
       ),
