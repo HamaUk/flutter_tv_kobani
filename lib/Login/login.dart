@@ -8,7 +8,7 @@ import '../main.dart';
 import '../services/login_codes_service.dart';
 
 class Login extends ConsumerStatefulWidget {
-  const Login({super.key});
+  const Login({Key? key}) : super(key: key);
 
   @override
   ConsumerState<Login> createState() => _LoginState();
@@ -18,22 +18,6 @@ class _LoginState extends ConsumerState<Login> {
   String _code = '';
   bool _isLoading = false;
   String _errorMessage = '';
-
-  final FocusNode _keyboardFocusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(context).requestFocus(_keyboardFocusNode);
-    });
-  }
-
-  @override
-  void dispose() {
-    _keyboardFocusNode.dispose();
-    super.dispose();
-  }
 
   Future<void> _login() async {
     if (_code.isEmpty) {
@@ -52,10 +36,10 @@ class _LoginState extends ConsumerState<Login> {
       if (isValid) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString("auth_code", _code);
-        
+
         if (mounted) {
-          this.ref.read(authCodeProvider.notifier).state = _code;
-          this.ref.read(authStateProvider.notifier).state = true;
+          ref.read(authCodeProvider.notifier).state = _code;
+          ref.read(authStateProvider.notifier).state = true;
         }
       } else {
         setState(() => _errorMessage = 'Invalid code. Please try again.');
@@ -79,250 +63,242 @@ class _LoginState extends ConsumerState<Login> {
       } else if (key == 'CLR') {
         _code = '';
       } else {
-        if (_code.length < 15) { // reasonable limit for code
+        if (_code.length < 15) {
           _code += key;
         }
       }
     });
   }
 
-  bool _handleKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      final keyLabel = event.logicalKey.keyLabel;
-      if (keyLabel != null && keyLabel.length == 1 && int.tryParse(keyLabel) != null) {
-        _onKeyPress(keyLabel);
-        return true;
-      } else if (event.logicalKey == LogicalKeyboardKey.backspace || 
-                 event.logicalKey == LogicalKeyboardKey.delete) {
-        _onKeyPress('DEL');
-        return true;
-      } else if (event.logicalKey == LogicalKeyboardKey.numpadEnter ||
-                 event.logicalKey == LogicalKeyboardKey.enter) {
-        if (!_isLoading && _code.isNotEmpty) {
-          _login();
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _keyboardFocusNode,
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent) {
-          final keyLabel = event.logicalKey.keyLabel;
-          if (keyLabel != null && keyLabel.length == 1 && int.tryParse(keyLabel) != null) {
-            _onKeyPress(keyLabel);
-          } else if (event.logicalKey == LogicalKeyboardKey.backspace || event.logicalKey == LogicalKeyboardKey.delete) {
-            _onKeyPress('DEL');
-          }
-        }
-      },
-      child: Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Background Gradient
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF17262A), Color(0xFF213333), Color(0xFF17262A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF17262A), Color(0xFF213333), Color(0xFF17262A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                  child: Container(
-                    width: 800,
-                    height: 400,
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        // Left Side: Branding and Display
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'KOBANI 4K',
+          ),
+
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  width: 800,
+                  height: 400,
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      // Left Side: Branding and Display
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'KOBANI 4K',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Enter your activation code',
+                              style: TextStyle(fontSize: 16, color: Colors.white54),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Code Display Box
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _code.isEmpty ? Colors.transparent : Colors.amber),
+                              ),
+                              child: Text(
+                                _code.isEmpty ? 'Tap keys to enter code' : _code,
                                 style: TextStyle(
-                                  fontSize: 48,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 2,
+                                  letterSpacing: 4,
+                                  color: _code.isEmpty ? Colors.white24 : Colors.amber,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Enter your activation code',
-                                style: TextStyle(fontSize: 16, color: Colors.white54),
-                              ),
-                              const SizedBox(height: 32),
-                              
-                              // Code Display Box
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _code.isEmpty ? Colors.transparent : Colors.amber),
-                                ),
+                            ),
+
+                            const SizedBox(height: 16),
+                            if (_errorMessage.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
                                 child: Text(
-                                  _code.isEmpty ? 'Tap keys to enter code' : _code,
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 4,
-                                    color: _code.isEmpty ? Colors.white24 : Colors.amber,
-                                  ),
+                                  _errorMessage,
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 14),
                                 ),
                               ),
-                              
-                              const SizedBox(height: 16),
-                              if (_errorMessage.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: Text(
-                                    _errorMessage,
-                                    style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                                  ),
-                                ),
-                              
-                              // Login Button
-                              _FocusableButton(
-                                onPressed: _isLoading ? null : _login,
-                                child: _isLoading 
-                                    ? const SizedBox(
-                                        height: 24, width: 24, 
-                                        child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2)
-                                      )
-                                    : const Text(
-                                        'LOGIN NOW',
-                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, letterSpacing: 1.5),
-                                      ),
-                              ),
-                            ],
-                          ),
+
+                            // Login Button
+                            _TvFocusableButton(
+                              autofocus: false,
+                              onPressed: _isLoading ? null : _login,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                                    )
+                                  : const Text(
+                                      'LOGIN NOW',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, letterSpacing: 1.5),
+                                    ),
+                            ),
+                          ],
                         ),
-                        
-                        const SizedBox(width: 60),
-                        
-                        // Right Side: Custom Numeric Keypad
-                        SizedBox(
-                          width: 280,
-                          child: GridView.count(
-                            crossAxisCount: 3,
-                            shrinkWrap: true,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.2,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              for (var i = 1; i <= 9; i++) 
-                                _KeypadButton(
-                                  text: '$i', 
-                                  onPressed: () => _onKeyPress('$i')
-                                ),
-                              _KeypadButton(
-                                text: 'CLR', 
-                                onPressed: () => _onKeyPress('CLR'),
-                                color: Colors.redAccent.withOpacity(0.2),
-                                textColor: Colors.redAccent,
+                      ),
+
+                      const SizedBox(width: 60),
+
+                      // Right Side: Custom Numeric Keypad
+                      SizedBox(
+                        width: 280,
+                        child: GridView.count(
+                          crossAxisCount: 3,
+                          shrinkWrap: true,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.2,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            for (var i = 1; i <= 9; i++)
+                              _TvKeypadButton(
+                                text: '$i',
+                                autofocus: i == 1,
+                                onPressed: () => _onKeyPress('$i'),
                               ),
-                              _KeypadButton(
-                                text: '0', 
-                                onPressed: () => _onKeyPress('0')
-                              ),
-                              _KeypadButton(
-                                icon: Icons.backspace_rounded, 
-                                onPressed: () => _onKeyPress('DEL'),
-                                color: Colors.white.withOpacity(0.1),
-                              ),
-                            ],
-                          ),
+                            _TvKeypadButton(
+                              text: 'CLR',
+                              onPressed: () => _onKeyPress('CLR'),
+                              color: Colors.redAccent.withOpacity(0.2),
+                              textColor: Colors.redAccent,
+                            ),
+                            _TvKeypadButton(
+                              text: '0',
+                              onPressed: () => _onKeyPress('0'),
+                            ),
+                            _TvKeypadButton(
+                              icon: Icons.backspace_rounded,
+                              onPressed: () => _onKeyPress('DEL'),
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _KeypadButton extends StatefulWidget {
+// ─── TV-safe keypad button using RawKeyboardListener (Flutter 3.3 compatible) ───
+class _TvKeypadButton extends StatefulWidget {
   final String? text;
   final IconData? icon;
   final VoidCallback onPressed;
   final Color? color;
   final Color? textColor;
+  final bool autofocus;
 
-  const _KeypadButton({
+  const _TvKeypadButton({
+    Key? key,
     this.text,
     this.icon,
     required this.onPressed,
     this.color,
     this.textColor,
-  });
+    this.autofocus = false,
+  }) : super(key: key);
 
   @override
-  State<_KeypadButton> createState() => _KeypadButtonState();
+  State<_TvKeypadButton> createState() => _TvKeypadButtonState();
 }
 
-class _KeypadButtonState extends State<_KeypadButton> {
+class _TvKeypadButtonState extends State<_TvKeypadButton> {
+  final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Focus(
+      focusNode: _focusNode,
+      autofocus: widget.autofocus,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: InkWell(
+      onKey: _handleKey,
+      child: GestureDetector(
         onTap: widget.onPressed,
-        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: _isFocused 
-                ? Colors.amber 
+            color: _isFocused
+                ? Colors.amber
                 : (widget.color ?? Colors.white.withOpacity(0.05)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _isFocused ? Colors.white : Colors.white.withOpacity(0.1),
               width: _isFocused ? 2 : 1,
             ),
-            boxShadow: _isFocused ? [const BoxShadow(color: Colors.amber, blurRadius: 10)] : [],
+            boxShadow: _isFocused
+                ? [const BoxShadow(color: Colors.amber, blurRadius: 10)]
+                : [],
           ),
           alignment: Alignment.center,
           child: widget.icon != null
               ? Icon(
-                  widget.icon, 
+                  widget.icon,
                   color: _isFocused ? Colors.black : Colors.white70,
                 )
               : Text(
@@ -339,36 +315,57 @@ class _KeypadButtonState extends State<_KeypadButton> {
   }
 }
 
-class _FocusableButton extends StatefulWidget {
+// ─── TV-safe focusable login button ───
+class _TvFocusableButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final Widget child;
+  final bool autofocus;
 
-  const _FocusableButton({
+  const _TvFocusableButton({
+    Key? key,
     required this.onPressed,
     required this.child,
-  });
+    this.autofocus = false,
+  }) : super(key: key);
 
   @override
-  State<_FocusableButton> createState() => _FocusableButtonState();
+  State<_TvFocusableButton> createState() => _TvFocusableButtonState();
 }
 
-class _FocusableButtonState extends State<_FocusableButton> {
+class _TvFocusableButtonState extends State<_TvFocusableButton> {
+  final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter ||
+          key == LogicalKeyboardKey.gameButtonA ||
+          key == LogicalKeyboardKey.space) {
+        if (widget.onPressed != null) widget.onPressed!();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Focus(
+      focusNode: _focusNode,
+      autofocus: widget.autofocus,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          if (widget.onPressed != null) widget.onPressed!();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: InkWell(
+      onKey: _handleKey,
+      child: GestureDetector(
         onTap: widget.onPressed,
-        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: double.infinity,
@@ -376,8 +373,8 @@ class _FocusableButtonState extends State<_FocusableButton> {
           decoration: BoxDecoration(
             color: _isFocused ? Colors.amber : Colors.amber.withOpacity(0.8),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isFocused 
-                ? [const BoxShadow(color: Colors.amber, blurRadius: 15, spreadRadius: 2)] 
+            boxShadow: _isFocused
+                ? [const BoxShadow(color: Colors.amber, blurRadius: 15, spreadRadius: 2)]
                 : [],
             border: Border.all(
               color: _isFocused ? Colors.white : Colors.transparent,
