@@ -1,28 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/channel.dart';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-final channelsProvider = FutureProvider<List<Channel>>((ref) async {
-  final snapshot = await FirebaseDatabase.instance.ref('sync/global/managedPlaylist').get();
-  if (!snapshot.exists || snapshot.value == null) return [];
-  
-  final List<Channel> channels = [];
-  final data = snapshot.value as List<dynamic>;
-  
-  for (var item in data) {
-    if (item != null) {
-      channels.add(Channel.fromMap(item as Map<dynamic, dynamic>));
-    }
-  }
-  return channels;
-});
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
