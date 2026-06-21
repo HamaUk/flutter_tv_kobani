@@ -419,7 +419,7 @@ class _ChannelCardState extends State<_ChannelCard> {
                   color: Colors.white.withOpacity(0.05),
                   padding: const EdgeInsets.all(16),
                   child: CachedNetworkImage(
-                    imageUrl: widget.channel.logo,
+                    imageUrl: widget.channel.logo ?? '',
                     fit: BoxFit.contain,
                     errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40),
                   ),
