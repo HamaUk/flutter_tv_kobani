@@ -31,7 +31,7 @@ class _PlayerState extends State<Player> {
   bool _isOverlayVisible = false;
   
   // To restore focus when overlay toggles
-  FocusNode _overlayFocusScopeNode = FocusNode();
+  FocusScopeNode _overlayFocusScopeNode = FocusScopeNode();
   
   // Track which item in the channel list is currently playing
   late ScrollController _scrollController;
