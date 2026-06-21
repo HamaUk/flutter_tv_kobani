@@ -9,6 +9,8 @@ import '../models/channel.dart';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Player/player.dart';
+import '../services/settings_provider.dart';
+import '../services/localization.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -21,6 +23,7 @@ class _HomeState extends ConsumerState<Home> {
   int _navIndex = 0; // 0: Live, 1: Movies, 2: Series, 3: Settings
   String? _selectedCategory;
   final FocusNode _firstCategoryFocusNode = FocusNode();
+  bool _initialized = false;
 
   @override
   void dispose() {
@@ -43,6 +46,21 @@ class _HomeState extends ConsumerState<Home> {
   Widget build(BuildContext context) {
     final channelsAsync = ref.watch(channelsProvider);
     final groupsAsync = ref.watch(groupsProvider);
+    final settings = ref.watch(settingsProvider);
+    final String lang = settings.language;
+    
+    // Theme Color Mapping
+    Color themeColor = Colors.amber;
+    if (settings.theme == 'red') themeColor = Colors.redAccent;
+    if (settings.theme == 'blue') themeColor = Colors.blueAccent;
+    if (settings.theme == 'green') themeColor = Colors.greenAccent;
+
+    // Handle Startup Screen
+    if (!_initialized) {
+      _initialized = true;
+      if (settings.startupScreen == 'movies') _navIndex = 1;
+      else if (settings.startupScreen == 'series') _navIndex = 2;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF17262A), // Dark theme from template
@@ -61,8 +79,8 @@ class _HomeState extends ConsumerState<Home> {
           ),
           
           channelsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator(color: Colors.amber)),
-            error: (err, stack) => Center(child: Text('Error loading channels: $err', style: const TextStyle(color: Colors.red))),
+            loading: () => Center(child: CircularProgressIndicator(color: themeColor)),
+            error: (err, stack) => Center(child: Text('${Localization.t('error_loading', lang)} $err', style: const TextStyle(color: Colors.red))),
             data: (allChannels) {
               final tabChannels = _getFilteredChannels(allChannels);
               final managedGroups = groupsAsync.asData?.value ?? [];
@@ -84,27 +102,30 @@ class _HomeState extends ConsumerState<Home> {
 
               final displayChannels = tabChannels.where((c) => c.group == _selectedCategory).toList();
 
-              return Row(
-                children: [
-                  // 1. Sidebar Menu
-                  _buildSidebar(),
-                  
-                  // 2. Categories List
-                  if (_navIndex < 3) 
-                    _buildCategories(categories),
-
-                  // 3. Channels Grid
-                  if (_navIndex < 3)
-                    Expanded(
-                      child: _buildChannelsGrid(displayChannels),
-                    ),
+              return Directionality(
+                textDirection: lang == 'ar' || lang == 'ku' ? TextDirection.rtl : TextDirection.ltr,
+                child: Row(
+                  children: [
+                    // 1. Sidebar Menu
+                    _buildSidebar(lang, themeColor),
                     
-                  // Settings View
-                  if (_navIndex == 3)
-                    Expanded(
-                      child: _buildSettings(),
-                    ),
-                ],
+                    // 2. Categories List
+                    if (_navIndex < 3) 
+                      _buildCategories(categories, lang, themeColor),
+
+                    // 3. Channels Grid
+                    if (_navIndex < 3)
+                      Expanded(
+                        child: _buildChannelsGrid(displayChannels, themeColor, lang, settings.hardwareDecoding),
+                      ),
+                      
+                    // Settings View
+                    if (_navIndex == 3)
+                      Expanded(
+                        child: _buildSettings(settings, lang, themeColor),
+                      ),
+                  ],
+                ),
               );
             },
           ),
@@ -113,7 +134,7 @@ class _HomeState extends ConsumerState<Home> {
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildSidebar(String lang, Color themeColor) {
     return Container(
       width: 90,
       decoration: BoxDecoration(
@@ -123,11 +144,12 @@ class _HomeState extends ConsumerState<Home> {
       child: Column(
         children: [
           const SizedBox(height: 30),
-          const Icon(Icons.tv_rounded, color: Colors.amber, size: 40),
+          Icon(Icons.tv_rounded, color: themeColor, size: 40),
           const SizedBox(height: 40),
           _SidebarItem(
+            themeColor: themeColor,
             icon: Icons.live_tv_rounded,
-            label: 'LIVE',
+            label: Localization.t('live_tv', lang),
             isSelected: _navIndex == 0,
             onFocus: () => setState(() { _navIndex = 0; _selectedCategory = null; }),
             onTap: () {
@@ -136,8 +158,9 @@ class _HomeState extends ConsumerState<Home> {
             },
           ),
           _SidebarItem(
+            themeColor: themeColor,
             icon: Icons.movie_creation_rounded,
-            label: 'MOVIES',
+            label: Localization.t('movies', lang),
             isSelected: _navIndex == 1,
             onFocus: () => setState(() { _navIndex = 1; _selectedCategory = null; }),
             onTap: () {
@@ -146,8 +169,9 @@ class _HomeState extends ConsumerState<Home> {
             },
           ),
           _SidebarItem(
+            themeColor: themeColor,
             icon: Icons.video_library_rounded,
-            label: 'SERIES',
+            label: Localization.t('series', lang),
             isSelected: _navIndex == 2,
             onFocus: () => setState(() { _navIndex = 2; _selectedCategory = null; }),
             onTap: () {
@@ -157,8 +181,9 @@ class _HomeState extends ConsumerState<Home> {
           ),
           const Spacer(),
           _SidebarItem(
+            themeColor: themeColor,
             icon: Icons.settings_rounded,
-            label: 'SETTINGS',
+            label: Localization.t('settings', lang),
             isSelected: _navIndex == 3,
             onFocus: () => setState(() => _navIndex = 3),
             onTap: () => setState(() => _navIndex = 3),
@@ -169,7 +194,7 @@ class _HomeState extends ConsumerState<Home> {
     );
   }
 
-  Widget _buildCategories(List<String> categories) {
+  Widget _buildCategories(List<String> categories, String lang, Color themeColor) {
     return Container(
       width: 250,
       decoration: BoxDecoration(
@@ -182,7 +207,7 @@ class _HomeState extends ConsumerState<Home> {
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text(
-              _navIndex == 0 ? 'LIVE TV' : _navIndex == 1 ? 'MOVIES' : 'SERIES',
+              _navIndex == 0 ? Localization.t('live_tv', lang) : _navIndex == 1 ? Localization.t('movies', lang) : Localization.t('series', lang),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -197,6 +222,7 @@ class _HomeState extends ConsumerState<Home> {
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 return _CategoryItem(
+                  themeColor: themeColor,
                   focusNode: index == 0 ? _firstCategoryFocusNode : null,
                   title: cat,
                   isSelected: _selectedCategory == cat,
@@ -211,9 +237,9 @@ class _HomeState extends ConsumerState<Home> {
     );
   }
 
-  Widget _buildChannelsGrid(List<Channel> channels) {
+  Widget _buildChannelsGrid(List<Channel> channels, Color themeColor, String lang, bool hardwareDecoding) {
     if (channels.isEmpty) {
-      return const Center(child: Text('No content available', style: TextStyle(color: Colors.white54)));
+      return Center(child: Text(Localization.t('no_content', lang), style: const TextStyle(color: Colors.white54)));
     }
     
     return Padding(
@@ -228,33 +254,149 @@ class _HomeState extends ConsumerState<Home> {
         itemCount: channels.length,
         itemBuilder: (context, index) {
           final channel = channels[index];
-          return _ChannelCard(channel: channel);
+          return _ChannelCard(
+            channel: channel, 
+            themeColor: themeColor,
+            channels: channels,
+            initialIndex: index,
+            hardwareDecoding: hardwareDecoding,
+            lang: lang,
+          );
         },
       ),
     );
   }
 
-  Widget _buildSettings() {
+  Widget _buildSettings(SettingsState settings, String lang, Color themeColor) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.settings, size: 80, color: Colors.white24),
-          const SizedBox(height: 24),
-          const Text('Settings', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 40),
-          _TvSettingsButton(
-            icon: Icons.logout,
-            label: 'LOGOUT',
-            color: Colors.redAccent,
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('auth_code');
-              ref.read(authStateProvider.notifier).state = false;
-              ref.read(authCodeProvider.notifier).state = null;
-            },
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.settings, size: 80, color: themeColor.withOpacity(0.8)),
+            const SizedBox(height: 24),
+            Text(Localization.t('settings', lang), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 40),
+            
+            // Language
+            _SettingsRow(
+              themeColor: themeColor,
+              title: Localization.t('language', lang),
+              value: Localization.t(settings.language, lang),
+              onTap: () {
+                final newLang = settings.language == 'en' ? 'ar' : settings.language == 'ar' ? 'ku' : 'en';
+                ref.read(settingsProvider.notifier).setLanguage(newLang);
+              },
+            ),
+            
+            // Theme
+            _SettingsRow(
+              themeColor: themeColor,
+              title: Localization.t('theme', lang),
+              value: Localization.t(settings.theme, lang),
+              onTap: () {
+                final newTheme = settings.theme == 'amber' ? 'red' : settings.theme == 'red' ? 'blue' : settings.theme == 'blue' ? 'green' : 'amber';
+                ref.read(settingsProvider.notifier).setTheme(newTheme);
+              },
+            ),
+
+            // Startup Screen
+            _SettingsRow(
+              themeColor: themeColor,
+              title: Localization.t('startup_screen', lang),
+              value: Localization.t(settings.startupScreen == 'live' ? 'live_tv' : settings.startupScreen, lang),
+              onTap: () {
+                final newScreen = settings.startupScreen == 'live' ? 'movies' : settings.startupScreen == 'movies' ? 'series' : 'live';
+                ref.read(settingsProvider.notifier).setStartupScreen(newScreen);
+              },
+            ),
+
+            // Hardware Decoding
+            _SettingsRow(
+              themeColor: themeColor,
+              title: Localization.t('hardware_decoding', lang),
+              value: settings.hardwareDecoding ? Localization.t('enabled', lang) : Localization.t('disabled', lang),
+              onTap: () {
+                ref.read(settingsProvider.notifier).setHardwareDecoding(!settings.hardwareDecoding);
+              },
+            ),
+
+            const SizedBox(height: 40),
+            _TvSettingsButton(
+              icon: Icons.logout,
+              label: Localization.t('logout', lang),
+              color: Colors.redAccent,
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('auth_code');
+                ref.read(authStateProvider.notifier).state = false;
+                ref.read(authCodeProvider.notifier).state = null;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatefulWidget {
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+  final Color themeColor;
+
+  const _SettingsRow({required this.title, required this.value, required this.onTap, required this.themeColor});
+
+  @override
+  State<_SettingsRow> createState() => _SettingsRowState();
+}
+
+class _SettingsRowState extends State<_SettingsRow> {
+  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _focusNode,
+      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      onKey: (node, event) {
+        if (event is RawKeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 50),
+          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: _isFocused ? widget.themeColor.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFocused ? widget.themeColor : Colors.transparent,
+              width: 2,
+            ),
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(widget.title, style: const TextStyle(color: Colors.white, fontSize: 20)),
+              Text(widget.value, style: TextStyle(color: _isFocused ? widget.themeColor : Colors.white70, fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -342,6 +484,7 @@ class _SidebarItem extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onFocus;
   final VoidCallback onTap;
+  final Color themeColor;
 
   const _SidebarItem({
     required this.icon,
@@ -349,6 +492,7 @@ class _SidebarItem extends StatefulWidget {
     required this.isSelected,
     required this.onFocus,
     required this.onTap,
+    required this.themeColor,
   });
 
   @override
@@ -399,7 +543,7 @@ class _SidebarItemState extends State<_SidebarItem> {
           decoration: BoxDecoration(
             border: Border(
               left: BorderSide(
-                color: widget.isSelected ? Colors.amber : Colors.transparent,
+                color: widget.isSelected ? widget.themeColor : Colors.transparent,
                 width: 4,
               ),
             ),
@@ -409,14 +553,14 @@ class _SidebarItemState extends State<_SidebarItem> {
             children: [
               Icon(
                 widget.icon,
-                color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
+                color: widget.isSelected || _isFocused ? widget.themeColor : Colors.white54,
                 size: 28,
               ),
               const SizedBox(height: 4),
               Text(
                 widget.label,
                 style: TextStyle(
-                  color: widget.isSelected || _isFocused ? Colors.amber : Colors.white54,
+                  color: widget.isSelected || _isFocused ? widget.themeColor : Colors.white54,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -435,6 +579,7 @@ class _CategoryItem extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onFocus;
   final VoidCallback onTap;
+  final Color themeColor;
 
   const _CategoryItem({
     this.focusNode,
@@ -442,6 +587,7 @@ class _CategoryItem extends StatefulWidget {
     required this.isSelected,
     required this.onFocus,
     required this.onTap,
+    required this.themeColor,
   });
 
   @override
@@ -498,14 +644,14 @@ class _CategoryItemState extends State<_CategoryItem> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: _isFocused 
-                ? Colors.amber 
+                ? widget.themeColor 
                 : (widget.isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             widget.title,
             style: TextStyle(
-              color: _isFocused ? Colors.black : (widget.isSelected ? Colors.amber : Colors.white70),
+              color: _isFocused ? Colors.black : (widget.isSelected ? widget.themeColor : Colors.white70),
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -518,8 +664,20 @@ class _CategoryItemState extends State<_CategoryItem> {
 
 class _ChannelCard extends StatefulWidget {
   final Channel channel;
+  final Color themeColor;
+  final List<Channel> channels;
+  final int initialIndex;
+  final bool hardwareDecoding;
+  final String lang;
 
-  const _ChannelCard({required this.channel});
+  const _ChannelCard({
+    required this.channel, 
+    required this.themeColor,
+    required this.channels,
+    required this.initialIndex,
+    required this.hardwareDecoding,
+    required this.lang,
+  });
 
   @override
   State<_ChannelCard> createState() => _ChannelCardState();
@@ -555,9 +713,12 @@ class _ChannelCardState extends State<_ChannelCard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          body: Player(video_url: widget.channel.url),
+        builder: (context) => Player(
+          channels: widget.channels,
+          initialIndex: widget.initialIndex,
+          themeColor: widget.themeColor,
+          hardwareDecoding: widget.hardwareDecoding,
+          lang: widget.lang,
         ),
       ),
     );
