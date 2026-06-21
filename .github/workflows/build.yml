@@ -32,6 +32,10 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Fix AGP 8 Manifest Package Error in Plugins
+        run: |
+          find ~/.pub-cache/hosted -name "AndroidManifest.xml" -type f -exec sed -i 's/package="[^"]*"//g' {} +
+
       - name: Build APK
         run: flutter build apk --release
 
