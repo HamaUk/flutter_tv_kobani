@@ -311,7 +311,7 @@ class _TvSettingsButtonState extends State<_TvSettingsButton> {
       child: GestureDetector(
         onTap: widget.onPressed,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 50),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           decoration: BoxDecoration(
             color: widget.color,
@@ -393,7 +393,7 @@ class _SidebarItemState extends State<_SidebarItem> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 50),
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
@@ -493,7 +493,7 @@ class _CategoryItemState extends State<_CategoryItem> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 50),
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
@@ -572,7 +572,7 @@ class _ChannelCardState extends State<_ChannelCard> {
       child: GestureDetector(
         onTap: _navigateToPlayer,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 50),
           curve: Curves.easeOutCubic,
           transform: _isFocused ? (Matrix4.identity()..scale(1.08)) : Matrix4.identity(),
           transformAlignment: Alignment.center,
