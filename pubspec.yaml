@@ -47,9 +47,9 @@ dependencies:
   better_player: ^0.0.83
   lottie: ^2.1.0
   shared_preferences: ^2.0.15
-  firebase_core: ^2.32.0
-  firebase_database: ^10.5.5
-  flutter_riverpod: ^2.5.1
+  firebase_core: any
+  firebase_database: any
+  flutter_riverpod: any
   transparent_image: ^2.0.1
   
 dev_dependencies:
