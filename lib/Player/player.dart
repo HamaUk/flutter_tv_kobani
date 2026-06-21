@@ -145,6 +145,7 @@ class _PlayerState extends State<Player> {
     return _FocusableItem(
       onTap: () {
         _changeChannel(index);
+        _toggleOverlay(); // Auto-hide menu when channel is selected
       },
       builder: (context, isFocused) {
         return Container(
