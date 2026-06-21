@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:better_player/better_player.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../models/channel.dart';
-import '../services/localization.dart';
 
 class Player extends StatefulWidget {
   final List<Channel> channels;
@@ -28,14 +27,20 @@ class Player extends StatefulWidget {
 class _PlayerState extends State<Player> {
   late BetterPlayerController _betterPlayerController;
   late int _currentIndex;
-  bool _isZapping = false;
-  String? _zappingChannelName;
-  String? _zappingChannelLogo;
+  
+  bool _isOverlayVisible = false;
+  
+  // To restore focus when overlay toggles
+  FocusNode _overlayFocusScopeNode = FocusNode();
+  
+  // Track which item in the channel list is currently playing
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _scrollController = ScrollController(initialScrollOffset: _currentIndex * 60.0);
     _setupPlayer(widget.channels[_currentIndex].url);
   }
 
@@ -46,6 +51,7 @@ class _PlayerState extends State<Player> {
       useAsmsSubtitles: true,
       useAsmsTracks: true,
       useAsmsAudioTracks: true,
+      headers: {"User-Agent": "VLC/3.0.9"}, // Fix for strict IPTV servers
     );
 
     _betterPlayerController = BetterPlayerController(
@@ -55,26 +61,27 @@ class _PlayerState extends State<Player> {
         autoPlay: true,
         allowedScreenSleep: false,
         fullScreenByDefault: true,
-        controlsConfiguration: BetterPlayerControlsConfiguration(
-          textColor: Colors.white,
-          iconsColor: Colors.white,
-          enableFullscreen: false,
-          enableQualities: true,
-          enablePlaybackSpeed: false,
-          enableSubtitles: true,
-          enableAudioTracks: true,
-          overflowModalColor: Colors.black87,
-          backgroundColor: Colors.transparent,
-          loadingWidget: Center(
-            child: LoadingAnimationWidget.fourRotatingDots(
-                color: widget.themeColor, size: 40),
-          ),
-          showControlsOnInitialize: true,
-          showControls: true,
+        controlsConfiguration: const BetterPlayerControlsConfiguration(
+          showControls: false, // Completely custom UI
         ),
       ),
       betterPlayerDataSource: dataSource,
     );
+  }
+
+  void _changeChannel(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+
+    _betterPlayerController.setupDataSource(BetterPlayerDataSource(
+      BetterPlayerDataSourceType.network,
+      widget.channels[_currentIndex].url,
+      useAsmsSubtitles: true,
+      useAsmsTracks: true,
+      useAsmsAudioTracks: true,
+      headers: {"User-Agent": "VLC/3.0.9"},
+    ));
   }
 
   void _zap(int direction) {
@@ -84,44 +91,40 @@ class _PlayerState extends State<Player> {
     } else if (newIndex >= widget.channels.length) {
       newIndex = 0;
     }
-
-    setState(() {
-      _currentIndex = newIndex;
-      _isZapping = true;
-      _zappingChannelName = widget.channels[_currentIndex].name;
-      _zappingChannelLogo = widget.channels[_currentIndex].logo;
-    });
-
-    _betterPlayerController.setupDataSource(BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      widget.channels[_currentIndex].url,
-      useAsmsSubtitles: true,
-      useAsmsTracks: true,
-      useAsmsAudioTracks: true,
-    ));
-
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _isZapping = false);
-    });
+    _changeChannel(newIndex);
   }
 
-  KeyEventResult _handleKey(FocusNode node, RawKeyEvent event) {
+  void _toggleOverlay() {
+    setState(() {
+      _isOverlayVisible = !_isOverlayVisible;
+    });
+    if (_isOverlayVisible) {
+      _overlayFocusScopeNode.requestFocus();
+    }
+  }
+
+  KeyEventResult _handleGlobalKey(FocusNode node, RawKeyEvent event) {
     if (event is RawKeyDownEvent) {
       final key = event.logicalKey;
-      if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.channelUp) {
-        _zap(1);
-        return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.channelDown) {
-        _zap(-1);
-        return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.gameButtonX) {
-        // Change aspect ratio mapping
-        final fit = _betterPlayerController.betterPlayerConfiguration.fit;
-        BoxFit nextFit = BoxFit.contain;
-        if (fit == BoxFit.contain) nextFit = BoxFit.fill;
-        else if (fit == BoxFit.fill) nextFit = BoxFit.cover;
-        _betterPlayerController.setOverriddenFit(nextFit);
-        return KeyEventResult.handled;
+      
+      // If overlay is hidden, OK button opens it. UP/DOWN zaps.
+      if (!_isOverlayVisible) {
+        if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.gameButtonA) {
+          _toggleOverlay();
+          return KeyEventResult.handled;
+        } else if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.channelUp) {
+          _zap(1);
+          return KeyEventResult.handled;
+        } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.channelDown) {
+          _zap(-1);
+          return KeyEventResult.handled;
+        }
+      } else {
+        // If overlay is visible, BACK button closes it
+        if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack || key == LogicalKeyboardKey.gameButtonB) {
+          _toggleOverlay();
+          return KeyEventResult.handled;
+        }
       }
     }
     return KeyEventResult.ignored;
@@ -130,56 +133,221 @@ class _PlayerState extends State<Player> {
   @override
   void dispose() {
     _betterPlayerController.dispose();
+    _overlayFocusScopeNode.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Widget _buildChannelListItem(int index) {
+    final channel = widget.channels[index];
+    final isPlaying = _currentIndex == index;
+    
+    return _FocusableItem(
+      onTap: () {
+        _changeChannel(index);
+      },
+      builder: (context, isFocused) {
+        return Container(
+          height: 60,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: isFocused ? widget.themeColor : (isPlaying ? Colors.white12 : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 16),
+              Text(
+                '${index + 1}',
+                style: TextStyle(color: isFocused ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Text(
+                  channel.name,
+                  style: TextStyle(
+                    color: isFocused ? Colors.black : (isPlaying ? widget.themeColor : Colors.white),
+                    fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 18,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (isPlaying)
+                Icon(Icons.play_arrow, color: isFocused ? Colors.black : widget.themeColor),
+              const SizedBox(width: 16),
+              Icon(Icons.favorite_border, color: isFocused ? Colors.black54 : Colors.white54, size: 20),
+              const SizedBox(width: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionIcon(IconData icon, String label, VoidCallback onTap) {
+    return _FocusableItem(
+      onTap: onTap,
+      builder: (context, isFocused) {
+        return Container(
+          width: 80,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isFocused ? widget.themeColor : Colors.transparent,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isFocused ? Colors.black : Colors.white, size: 28),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isFocused ? Colors.black : Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pop(context);
-        return false;
+        if (_isOverlayVisible) {
+          _toggleOverlay();
+          return false;
+        }
+        return true;
       },
-      child: Focus(
+      child: FocusScope(
         autofocus: true,
-        onKey: _handleKey,
+        onKey: _handleGlobalKey,
         child: Scaffold(
           backgroundColor: Colors.black,
           body: Stack(
             fit: StackFit.expand,
             children: [
+              // 1. The Video Player
               SafeArea(
                 child: BetterPlayer(controller: _betterPlayerController),
               ),
-              if (_isZapping)
-                Positioned(
-                  bottom: 50,
-                  left: 50,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: widget.themeColor, width: 2),
-                    ),
-                    child: Row(
-                      children: [
-                        if (_zappingChannelLogo != null && _zappingChannelLogo!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: Image.network(_zappingChannelLogo!, width: 50, height: 50, errorBuilder: (_,__,___) => const SizedBox()),
+              
+              // 2. Custom Overlay
+              if (_isOverlayVisible)
+                Container(
+                  color: Colors.black.withOpacity(0.6), // Dim the video
+                  child: Row(
+                    children: [
+                      // Left: Channel List
+                      Expanded(
+                        flex: 3,
+                        child: FocusScope(
+                          node: _overlayFocusScopeNode,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.arrow_back, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text('Back', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Spacer(),
+                                    Icon(Icons.public, color: Colors.white54),
+                                    SizedBox(width: 8),
+                                    Text('Persian', style: TextStyle(color: Colors.white54, fontSize: 18)),
+                                    Spacer(),
+                                    Icon(Icons.visibility, color: Colors.white54),
+                                    SizedBox(width: 4),
+                                    Text('ch: 7', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  itemCount: widget.channels.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildChannelListItem(index);
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                        Text(
-                          _zappingChannelName ?? '',
-                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                      ],
-                    ),
+                      ),
+                      
+                      // Right: Action Menu Column
+                      Container(
+                        width: 90,
+                        color: Colors.black87,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildActionIcon(Icons.menu, '', () {}),
+                            _buildActionIcon(Icons.search, 'Search', () {}),
+                            _buildActionIcon(Icons.category, 'Type', () {}),
+                            _buildActionIcon(Icons.favorite, 'Add to Fav', () {}),
+                            _buildActionIcon(Icons.list, 'Fav list', () {}),
+                            _buildActionIcon(Icons.schedule, 'Time shift', () {}),
+                            _buildActionIcon(Icons.skip_next, 'Next', () => _zap(1)),
+                            _buildActionIcon(Icons.skip_previous, 'Previous', () => _zap(-1)),
+                          ],
+                        ),
+                      ),
+                      
+                      // Empty space to right (to match ratio from picture)
+                      Expanded(flex: 4, child: Container()),
+                    ],
                   ),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Helper widget for easy focus management
+class _FocusableItem extends StatefulWidget {
+  final Widget Function(BuildContext context, bool isFocused) builder;
+  final VoidCallback onTap;
+
+  const _FocusableItem({required this.builder, required this.onTap});
+
+  @override
+  State<_FocusableItem> createState() => _FocusableItemState();
+}
+
+class _FocusableItemState extends State<_FocusableItem> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      onKey: (node, event) {
+        if (event is RawKeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+             event.logicalKey == LogicalKeyboardKey.enter ||
+             event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: widget.builder(context, _isFocused),
       ),
     );
   }

@@ -5,6 +5,7 @@
    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
    <uses-feature android:name="android.hardware.type.television" android:required="true" />
    <application
+        android:usesCleartextTraffic="true"
         android:label="KOBANI 4K"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"

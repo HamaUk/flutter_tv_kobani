@@ -290,9 +290,6 @@ class _TvKeypadButtonState extends State<_TvKeypadButton> {
               color: _isFocused ? Colors.white : Colors.white.withOpacity(0.1),
               width: _isFocused ? 2 : 1,
             ),
-            boxShadow: _isFocused
-                ? [const BoxShadow(color: Colors.amber, blurRadius: 10)]
-                : [],
           ),
           alignment: Alignment.center,
           child: widget.icon != null
@@ -368,9 +365,6 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
           decoration: BoxDecoration(
             color: _isFocused ? Colors.amber : Colors.amber.withOpacity(0.8),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isFocused
-                ? [const BoxShadow(color: Colors.amber, blurRadius: 15, spreadRadius: 2)]
-                : [],
             border: Border.all(
               color: _isFocused ? Colors.white : Colors.transparent,
               width: 2,
