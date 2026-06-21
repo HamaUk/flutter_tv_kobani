@@ -22,12 +22,15 @@ class Home extends ConsumerStatefulWidget {
 class _HomeState extends ConsumerState<Home> {
   int _navIndex = 0; // 0: Live, 1: Movies, 2: Series, 3: Settings
   String? _selectedCategory;
+
   final FocusNode _firstCategoryFocusNode = FocusNode();
+  final FocusNode _selectedCategoryFocusNode = FocusNode();
   bool _initialized = false;
 
   @override
   void dispose() {
     _firstCategoryFocusNode.dispose();
+    _selectedCategoryFocusNode.dispose();
     super.dispose();
   }
 
@@ -156,6 +159,7 @@ class _HomeState extends ConsumerState<Home> {
               setState(() { _navIndex = 0; _selectedCategory = null; });
               _firstCategoryFocusNode.requestFocus();
             },
+            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
           ),
           _SidebarItem(
             themeColor: themeColor,
@@ -167,6 +171,7 @@ class _HomeState extends ConsumerState<Home> {
               setState(() { _navIndex = 1; _selectedCategory = null; });
               _firstCategoryFocusNode.requestFocus();
             },
+            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
           ),
           _SidebarItem(
             themeColor: themeColor,
@@ -178,6 +183,7 @@ class _HomeState extends ConsumerState<Home> {
               setState(() { _navIndex = 2; _selectedCategory = null; });
               _firstCategoryFocusNode.requestFocus();
             },
+            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
           ),
           const Spacer(),
           _SidebarItem(
@@ -221,11 +227,12 @@ class _HomeState extends ConsumerState<Home> {
               itemCount: categories.length,
               itemBuilder: (context, index) {
                 final cat = categories[index];
+                final isSelected = _selectedCategory == cat;
                 return _CategoryItem(
                   themeColor: themeColor,
-                  focusNode: index == 0 ? _firstCategoryFocusNode : null,
+                  focusNode: isSelected ? _selectedCategoryFocusNode : (index == 0 ? _firstCategoryFocusNode : null),
                   title: cat,
-                  isSelected: _selectedCategory == cat,
+                  isSelected: isSelected,
                   onFocus: () => setState(() => _selectedCategory = cat),
                   onTap: () => setState(() => _selectedCategory = cat),
                 );
@@ -261,6 +268,13 @@ class _HomeState extends ConsumerState<Home> {
             initialIndex: index,
             hardwareDecoding: hardwareDecoding,
             lang: lang,
+            onMoveLeft: (index % 5 == 0) ? () {
+              if (_selectedCategory != null) {
+                _selectedCategoryFocusNode.requestFocus();
+              } else {
+                _firstCategoryFocusNode.requestFocus();
+              }
+            } : null,
           );
         },
       ),
@@ -485,6 +499,7 @@ class _SidebarItem extends StatefulWidget {
   final VoidCallback onFocus;
   final VoidCallback onTap;
   final Color themeColor;
+  final VoidCallback? onMoveRight;
 
   const _SidebarItem({
     required this.icon,
@@ -493,6 +508,7 @@ class _SidebarItem extends StatefulWidget {
     required this.onFocus,
     required this.onTap,
     required this.themeColor,
+    this.onMoveRight,
   });
 
   @override
@@ -519,6 +535,9 @@ class _SidebarItemState extends State<_SidebarItem> {
           key == LogicalKeyboardKey.gameButtonA ||
           key == LogicalKeyboardKey.space) {
         widget.onTap();
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowRight && widget.onMoveRight != null) {
+        widget.onMoveRight!();
         return KeyEventResult.handled;
       }
     }
@@ -669,6 +688,7 @@ class _ChannelCard extends StatefulWidget {
   final int initialIndex;
   final bool hardwareDecoding;
   final String lang;
+  final VoidCallback? onMoveLeft;
 
   const _ChannelCard({
     required this.channel, 
@@ -677,6 +697,7 @@ class _ChannelCard extends StatefulWidget {
     required this.initialIndex,
     required this.hardwareDecoding,
     required this.lang,
+    this.onMoveLeft,
   });
 
   @override
@@ -703,6 +724,9 @@ class _ChannelCardState extends State<_ChannelCard> {
           key == LogicalKeyboardKey.gameButtonA ||
           key == LogicalKeyboardKey.space) {
         _navigateToPlayer();
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowLeft && widget.onMoveLeft != null) {
+        widget.onMoveLeft!();
         return KeyEventResult.handled;
       }
     }
