@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch: # Allows manual trigger from the Actions tab
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
