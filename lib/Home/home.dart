@@ -144,7 +144,7 @@ class _HomeState extends ConsumerState<Home> {
       child: Column(
         children: [
           const SizedBox(height: 30),
-          Icon(Icons.tv_rounded, color: themeColor, size: 40),
+          Image.asset('assets/images/flut.png', width: 60, height: 60),
           const SizedBox(height: 40),
           _SidebarItem(
             themeColor: themeColor,
