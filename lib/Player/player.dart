@@ -32,6 +32,7 @@ class _PlayerState extends State<Player> {
   
   // To restore focus when overlay toggles
   FocusScopeNode _overlayFocusScopeNode = FocusScopeNode();
+  late FocusScopeNode _globalFocusScopeNode;
   
   // Track which item in the channel list is currently playing
   late ScrollController _scrollController;
@@ -39,9 +40,14 @@ class _PlayerState extends State<Player> {
   @override
   void initState() {
     super.initState();
+    _globalFocusScopeNode = FocusScopeNode();
     _currentIndex = widget.initialIndex;
     _scrollController = ScrollController(initialScrollOffset: _currentIndex * 60.0);
     _setupPlayer(widget.channels[_currentIndex].url);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _globalFocusScopeNode.requestFocus();
+    });
   }
 
   void _setupPlayer(String url) {
@@ -100,6 +106,8 @@ class _PlayerState extends State<Player> {
     });
     if (_isOverlayVisible) {
       _overlayFocusScopeNode.requestFocus();
+    } else {
+      _globalFocusScopeNode.requestFocus();
     }
   }
 
@@ -138,6 +146,7 @@ class _PlayerState extends State<Player> {
   void dispose() {
     _betterPlayerController.dispose();
     _overlayFocusScopeNode.dispose();
+    _globalFocusScopeNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -232,7 +241,7 @@ class _PlayerState extends State<Player> {
         return true;
       },
       child: FocusScope(
-        autofocus: true,
+        node: _globalFocusScopeNode,
         onKey: _handleGlobalKey,
         child: Scaffold(
           backgroundColor: Colors.black,
