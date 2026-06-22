@@ -275,7 +275,7 @@ class _PlayerState extends State<Player> {
                               Padding(
                                 padding: const EdgeInsets.all(24.0),
                                 child: _FocusableItem(
-                                  onTap: () => Navigator.pop(context),
+                                  onTap: () => _toggleOverlay(),
                                   builder: (context, isFocused) {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -289,7 +289,7 @@ class _PlayerState extends State<Player> {
                                           Icon(Icons.arrow_back, color: isFocused ? Colors.black : Colors.white),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Back to Dashboard', 
+                                            'Back', 
                                             style: TextStyle(
                                               color: isFocused ? Colors.black : Colors.white, 
                                               fontSize: 18, 
