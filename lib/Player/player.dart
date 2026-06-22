@@ -29,15 +29,8 @@ class _PlayerState extends State<Player> {
   bool _isOverlayVisible = false;
   late ScrollController _scrollController;
 
-  // Configurable Menu Items (Easy to customize)
-  final List<MenuAction> _menuActions = [
-    MenuAction(icon: Icons.search, label: 'Search', onSelect: null),
-    MenuAction(icon: Icons.favorite, label: 'Favorites', onSelect: null),
-    MenuAction(icon: Icons.category, label: 'Categories', onSelect: null),
-    MenuAction(icon: Icons.schedule, label: 'Schedule', onSelect: null),
-    MenuAction(icon: Icons.skip_previous, label: 'Previous', onSelect: null),
-    MenuAction(icon: Icons.skip_next, label: 'Next', onSelect: null),
-  ];
+  // Configurable Menu Items
+  late final List<MenuAction> _menuActions;
 
   @override
   void initState() {
@@ -46,6 +39,16 @@ class _PlayerState extends State<Player> {
     _scrollController = ScrollController(
       initialScrollOffset: (_currentIndex * 68.0) - (68.0 * 2),
     );
+    
+    _menuActions = [
+      MenuAction(icon: Icons.search, label: 'Search', onSelect: null),
+      MenuAction(icon: Icons.favorite, label: 'Favorites', onSelect: null),
+      MenuAction(icon: Icons.category, label: 'Categories', onSelect: null),
+      MenuAction(icon: Icons.schedule, label: 'Schedule', onSelect: null),
+      MenuAction(icon: Icons.skip_previous, label: 'Previous', onSelect: () => _zap(-1)),
+      MenuAction(icon: Icons.skip_next, label: 'Next', onSelect: () => _zap(1)),
+    ];
+
     _setupPlayer(widget.channels[_currentIndex].url);
   }
 
@@ -74,16 +77,11 @@ class _PlayerState extends State<Player> {
 
   void _changeChannel(int index) {
     if (index < 0 || index >= widget.channels.length) return;
-    
     setState(() => _currentIndex = index);
-    
     _betterPlayerController.setupDataSource(
       BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
         widget.channels[index].url,
-        useAsmsSubtitles: true,
-        useAsmsTracks: true,
-        useAsmsAudioTracks: true,
         headers: {"User-Agent": "VLC/3.0.9"},
       ),
     );
@@ -98,7 +96,6 @@ class _PlayerState extends State<Player> {
 
   void _toggleOverlay() {
     setState(() => _isOverlayVisible = !_isOverlayVisible);
-
     if (_isOverlayVisible && _scrollController.hasClients) {
       final targetOffset = (_currentIndex * 68.0) - (68.0 * 2);
       _scrollController.jumpTo(
@@ -116,91 +113,86 @@ class _PlayerState extends State<Player> {
 
   @override
   Widget build(BuildContext context) {
-    return Dpad.wrap(
-      debugOverlay: false, // Set to true only while testing
-      onBack: () {
+    // FIXED: Using PopScope instead of WillPopScope (required for Flutter 3.12+)
+    return PopScope(
+      canPop: !_isOverlayVisible,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         if (_isOverlayVisible) {
           _toggleOverlay();
-          return true;
         }
-        return false;
       },
-      child: WillPopScope(
-        onWillPop: () async {
-          if (_isOverlayVisible) {
-            _toggleOverlay();
-            return false;
-          }
-          return true;
-        },
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Fullscreen Video Player
-              ExcludeFocus(
-                child: BetterPlayer(controller: _betterPlayerController),
-              ),
-
-              // Overlay (Channel Zap + Menu)
-              if (_isOverlayVisible)
-                Container(
-                  color: Colors.black.withOpacity(0.92),
-                  child: Row(
-                    children: [
-                      // Left: Channel List (Zap)
-                      Expanded(
-                        flex: 3,
-                        child: DpadRegion(
-                          memoryKey: 'player_channel_list',
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Back Button
-                              Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: DpadFocusable(
-                                  autofocus: true,
-                                  onSelect: () => Navigator.pop(context),
-                                  effects: const [DpadScaleEffect(scale: 1.08)],
-                                  child: _buildBackButton(),
-                                ),
-                              ),
-
-                              // Channels
-                              Expanded(
-                                child: ListView.builder(
-                                  controller: _scrollController,
-                                  itemCount: widget.channels.length,
-                                  itemBuilder: (context, index) =>
-                                      _buildChannelItem(index),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Right: Modern Menu Bar
-                      Container(
-                        width: 110,
-                        color: Colors.black87,
-                        child: DpadRegion(
-                          memoryKey: 'player_menu',
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: _menuActions.map(_buildMenuItem).toList(),
-                          ),
-                        ),
-                      ),
-
-                      // Spacer
-                      const Expanded(flex: 4, child: SizedBox()),
-                    ],
-                  ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Shortcuts(
+          // Allow remote control to toggle overlay
+          shortcuts: <LogicalKeySet, Intent>{
+            LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
+            LogicalKeySet(LogicalKeyboardKey.enter): const ActivateIntent(),
+            LogicalKeySet(LogicalKeyboardKey.center): const ActivateIntent(),
+          },
+          child: GestureDetector(
+            onTap: _toggleOverlay,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Fullscreen Video
+                ExcludeFocus(
+                  child: BetterPlayer(controller: _betterPlayerController),
                 ),
-            ],
+
+                // Overlay
+                if (_isOverlayVisible)
+                  Container(
+                    color: Colors.black.withOpacity(0.9),
+                    child: Row(
+                      children: [
+                        // Left: Channel List
+                        Expanded(
+                          flex: 3,
+                          child: DpadRegion(
+                            memoryKey: 'player_channels',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: DpadFocusable(
+                                    autofocus: true,
+                                    onSelect: () => Navigator.pop(context),
+                                    child: _buildBackButton(),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    itemCount: widget.channels.length,
+                                    itemBuilder: (context, index) => _buildChannelItem(index),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Right: Menu
+                        Container(
+                          width: 110,
+                          color: Colors.black45,
+                          child: DpadRegion(
+                            memoryKey: 'player_menu',
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: _menuActions.map(_buildMenuItem).toList(),
+                            ),
+                          ),
+                        ),
+                        const Expanded(flex: 4, child: SizedBox()),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -210,23 +202,13 @@ class _PlayerState extends State<Player> {
   Widget _buildBackButton() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: widget.themeColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: widget.themeColor, borderRadius: BorderRadius.circular(12)),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.arrow_back, color: Colors.black, size: 28),
+          Icon(Icons.arrow_back, color: Colors.black),
           SizedBox(width: 12),
-          Text(
-            'Back to Dashboard',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text('Back', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -235,56 +217,27 @@ class _PlayerState extends State<Player> {
   Widget _buildChannelItem(int index) {
     final channel = widget.channels[index];
     final isPlaying = _currentIndex == index;
-
     return DpadFocusable(
       onSelect: () {
         _changeChannel(index);
         _toggleOverlay();
       },
-      effects: const [
-        DpadScaleEffect(scale: 1.04),
-        DpadGlowEffect(),
-      ],
       child: Container(
-        height: 64,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        height: 60,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         decoration: BoxDecoration(
-          color: isPlaying ? Colors.white12 : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: isPlaying
-              ? Border.all(color: widget.themeColor, width: 2)
-              : null,
+          color: isPlaying ? widget.themeColor.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: isPlaying ? Border.all(color: widget.themeColor) : null,
         ),
         child: Row(
           children: [
+            const SizedBox(width: 15),
+            Text('${index + 1}', style: TextStyle(color: isPlaying ? widget.themeColor : Colors.white54)),
             const SizedBox(width: 20),
-            Text(
-              '${index + 1}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isPlaying ? widget.themeColor : Colors.white70,
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Text(
-                channel.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 17,
-                  color: isPlaying ? widget.themeColor : Colors.white,
-                  fontWeight: isPlaying ? FontWeight.bold : FontWeight.w500,
-                ),
-              ),
-            ),
-            if (isPlaying)
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Icon(Icons.play_circle, color: widget.themeColor, size: 28),
-              ),
-            const SizedBox(width: 8),
+            Expanded(child: Text(channel.name, style: const TextStyle(color: Colors.white))),
+            if (isPlaying) Icon(Icons.play_arrow, color: widget.themeColor),
+            const SizedBox(width: 15),
           ],
         ),
       ),
@@ -292,29 +245,15 @@ class _PlayerState extends State<Player> {
   }
 
   Widget _buildMenuItem(MenuAction action) {
-    final onSelect = action.onSelect ?? () {}; // Default empty action
-
     return DpadFocusable(
-      onSelect: () {
-        onSelect();
-        // Optional: close overlay after action
-        // _toggleOverlay();
-      },
-      effects: const [DpadScaleEffect(scale: 1.12)],
+      onSelect: action.onSelect ?? () {},
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 15),
         child: Column(
           children: [
-            Icon(action.icon, color: Colors.white, size: 34),
-            const SizedBox(height: 8),
-            Text(
-              action.label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Icon(action.icon, color: Colors.white, size: 30),
+            const SizedBox(height: 5),
+            Text(action.label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
           ],
         ),
       ),
@@ -322,15 +261,9 @@ class _PlayerState extends State<Player> {
   }
 }
 
-// Helper class for configurable menu
 class MenuAction {
   final IconData icon;
   final String label;
   final VoidCallback? onSelect;
-
-  MenuAction({
-    required this.icon,
-    required this.label,
-    this.onSelect,
-  });
+  MenuAction({required this.icon, required this.label, this.onSelect});
 }
