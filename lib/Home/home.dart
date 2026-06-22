@@ -20,7 +20,7 @@ class Home extends ConsumerStatefulWidget {
 }
 
 class _HomeState extends ConsumerState<Home> {
-  int _navIndex = 0; // 0: Live, 1: Movies, 2: Series, 3: Settings
+  int _navIndex = 0; // 0: Live, 1: Movies, 2: Settings
   String? _selectedCategory;
 
   final FocusNode _firstCategoryFocusNode = FocusNode();
@@ -39,8 +39,6 @@ class _HomeState extends ConsumerState<Home> {
       return all.where((c) => c.type != 'movie' && c.type != 'series').toList();
     } else if (_navIndex == 1) {
       return all.where((c) => c.type == 'movie').toList();
-    } else if (_navIndex == 2) {
-      return all.where((c) => c.type == 'series').toList();
     }
     return [];
   }
@@ -62,7 +60,6 @@ class _HomeState extends ConsumerState<Home> {
     if (!_initialized) {
       _initialized = true;
       if (settings.startupScreen == 'movies') _navIndex = 1;
-      else if (settings.startupScreen == 'series') _navIndex = 2;
     }
 
     return Scaffold(
@@ -113,17 +110,17 @@ class _HomeState extends ConsumerState<Home> {
                     _buildSidebar(lang, themeColor),
                     
                     // 2. Categories List
-                    if (_navIndex < 3) 
+                    if (_navIndex < 2) 
                       _buildCategories(categories, lang, themeColor),
 
                     // 3. Channels Grid
-                    if (_navIndex < 3)
+                    if (_navIndex < 2)
                       Expanded(
                         child: _buildChannelsGrid(displayChannels, themeColor, lang, settings.hardwareDecoding),
                       ),
                       
                     // Settings View
-                    if (_navIndex == 3)
+                    if (_navIndex == 2)
                       Expanded(
                         child: _buildSettings(settings, lang, themeColor),
                       ),
@@ -173,26 +170,14 @@ class _HomeState extends ConsumerState<Home> {
             },
             onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
           ),
-          _SidebarItem(
-            themeColor: themeColor,
-            icon: Icons.video_library_rounded,
-            label: Localization.t('series', lang),
-            isSelected: _navIndex == 2,
-            onFocus: () => setState(() { _navIndex = 2; _selectedCategory = null; }),
-            onTap: () {
-              setState(() { _navIndex = 2; _selectedCategory = null; });
-              _firstCategoryFocusNode.requestFocus();
-            },
-            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
-          ),
           const Spacer(),
           _SidebarItem(
             themeColor: themeColor,
             icon: Icons.settings_rounded,
             label: Localization.t('settings', lang),
-            isSelected: _navIndex == 3,
-            onFocus: () => setState(() => _navIndex = 3),
-            onTap: () => setState(() => _navIndex = 3),
+            isSelected: _navIndex == 2,
+            onFocus: () => setState(() => _navIndex = 2),
+            onTap: () => setState(() => _navIndex = 2),
           ),
           const SizedBox(height: 20),
         ],
@@ -213,7 +198,7 @@ class _HomeState extends ConsumerState<Home> {
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text(
-              _navIndex == 0 ? Localization.t('live_tv', lang) : _navIndex == 1 ? Localization.t('movies', lang) : Localization.t('series', lang),
+              _navIndex == 0 ? Localization.t('live_tv', lang) : Localization.t('movies', lang),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -320,7 +305,7 @@ class _HomeState extends ConsumerState<Home> {
               title: Localization.t('startup_screen', lang),
               value: Localization.t(settings.startupScreen == 'live' ? 'live_tv' : settings.startupScreen, lang),
               onTap: () {
-                final newScreen = settings.startupScreen == 'live' ? 'movies' : settings.startupScreen == 'movies' ? 'series' : 'live';
+                final newScreen = settings.startupScreen == 'live' ? 'movies' : 'live';
                 ref.read(settingsProvider.notifier).setStartupScreen(newScreen);
               },
             ),
