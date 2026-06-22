@@ -18,7 +18,7 @@ class SettingsState {
   final bool hardwareDecoding;
 
   SettingsState({
-    this.language = 'en',
+    this.language = 'ku',
     this.theme = 'blue',
     this.startupScreen = 'live',
     this.hardwareDecoding = true,
@@ -47,7 +47,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     state = SettingsState(
-      language: prefs.getString(_kLanguage) ?? 'en',
+      language: prefs.getString(_kLanguage) ?? 'ku',
       theme: prefs.getString(_kTheme) ?? 'blue',
       startupScreen: prefs.getString(_kStartup) ?? 'live',
       hardwareDecoding: prefs.getBool(_kHardwareDecode) ?? true,

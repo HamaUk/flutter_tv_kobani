@@ -109,7 +109,7 @@ class _HomeState extends ConsumerState<Home> {
               final displayChannels = tabChannels.where((c) => c.group == _selectedCategory).toList();
 
               return Directionality(
-                textDirection: lang == 'ar' || lang == 'ku' ? TextDirection.rtl : TextDirection.ltr,
+                textDirection: lang == 'ar' ? TextDirection.rtl : TextDirection.ltr,
                 child: Row(
                   children: [
                     // 1. Sidebar Menu

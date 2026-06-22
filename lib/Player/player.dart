@@ -32,21 +32,22 @@ class _PlayerState extends State<Player> {
   
   // To restore focus when overlay toggles
   FocusScopeNode _overlayFocusScopeNode = FocusScopeNode();
-  late FocusScopeNode _globalFocusScopeNode;
+  late FocusNode _globalFocusNode;
   
   // Track which item in the channel list is currently playing
   late ScrollController _scrollController;
+  final Map<int, FocusNode> _channelFocusNodes = {};
 
   @override
   void initState() {
     super.initState();
-    _globalFocusScopeNode = FocusScopeNode();
+    _globalFocusNode = FocusNode();
     _currentIndex = widget.initialIndex;
-    _scrollController = ScrollController(initialScrollOffset: _currentIndex * 60.0);
+    _scrollController = ScrollController(initialScrollOffset: _currentIndex * 68.0);
     _setupPlayer(widget.channels[_currentIndex].url);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _globalFocusScopeNode.requestFocus();
+      if (mounted) _globalFocusNode.requestFocus();
     });
   }
 
@@ -106,11 +107,21 @@ class _PlayerState extends State<Player> {
     });
     if (_isOverlayVisible) {
       _overlayFocusScopeNode.requestFocus();
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_currentIndex * 60.0);
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          // Align the selected item near the middle (subtracting a few items' height)
+          double offset = (_currentIndex * 68.0) - (68.0 * 2);
+          if (offset < 0) offset = 0;
+          _scrollController.jumpTo(offset);
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _channelFocusNodes.containsKey(_currentIndex)) {
+            _channelFocusNodes[_currentIndex]?.requestFocus();
+          }
+        });
+      });
     } else {
-      _globalFocusScopeNode.requestFocus();
+      _globalFocusNode.requestFocus();
     }
   }
 
@@ -128,10 +139,10 @@ class _PlayerState extends State<Player> {
           _toggleOverlay();
           return KeyEventResult.handled;
         } else if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.channelUp) {
-          _zap(1);
+          _zap(-1);
           return KeyEventResult.handled;
         } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.channelDown) {
-          _zap(-1);
+          _zap(1);
           return KeyEventResult.handled;
         }
       } else {
@@ -149,16 +160,21 @@ class _PlayerState extends State<Player> {
   void dispose() {
     _betterPlayerController.dispose();
     _overlayFocusScopeNode.dispose();
-    _globalFocusScopeNode.dispose();
+    _globalFocusNode.dispose();
     _scrollController.dispose();
+    for (var node in _channelFocusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
   Widget _buildChannelListItem(int index) {
     final channel = widget.channels[index];
     final isPlaying = _currentIndex == index;
+    final focusNode = _channelFocusNodes.putIfAbsent(index, () => FocusNode());
     
     return _FocusableItem(
+      focusNode: focusNode,
       onTap: () {
         _changeChannel(index);
         _toggleOverlay(); // Auto-hide menu when channel is selected
@@ -243,8 +259,8 @@ class _PlayerState extends State<Player> {
         }
         return true;
       },
-      child: FocusScope(
-        node: _globalFocusScopeNode,
+      child: Focus(
+        focusNode: _globalFocusNode,
         onKey: _handleGlobalKey,
         child: Scaffold(
           backgroundColor: Colors.black,
@@ -351,8 +367,9 @@ class _PlayerState extends State<Player> {
 class _FocusableItem extends StatefulWidget {
   final Widget Function(BuildContext context, bool isFocused) builder;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
 
-  const _FocusableItem({required this.builder, required this.onTap});
+  const _FocusableItem({required this.builder, required this.onTap, this.focusNode});
 
   @override
   State<_FocusableItem> createState() => _FocusableItemState();
@@ -360,10 +377,26 @@ class _FocusableItem extends StatefulWidget {
 
 class _FocusableItemState extends State<_FocusableItem> {
   bool _isFocused = false;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = widget.focusNode ?? FocusNode();
+  }
+
+  @override
+  void dispose() {
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Focus(
+      focusNode: _focusNode,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
       onKey: (node, event) {
         if (event is RawKeyDownEvent &&

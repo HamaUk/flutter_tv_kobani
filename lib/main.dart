@@ -72,7 +72,7 @@ class _KobaniTvAppState extends ConsumerState<KobaniTvApp> {
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF17262A), // Dark from templates
         scaffoldBackgroundColor: const Color(0xFF17262A),
-        fontFamily: 'WorkSans',
+        fontFamily: 'Rabar_015',
         textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.white),
         ),

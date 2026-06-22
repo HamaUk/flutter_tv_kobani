@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'error_page.dart';
 
 class TeveTheme {
@@ -20,7 +19,8 @@ class TeveTheme {
     Color color = whiteColor,
     bool isShadow = false,
   }) {
-    return GoogleFonts.poppins(
+    return TextStyle(
+        fontFamily: 'Rabar_015',
         fontSize: size,
         fontWeight: weight,
         fontStyle: style,
