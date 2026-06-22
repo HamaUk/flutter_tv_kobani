@@ -106,6 +106,9 @@ class _PlayerState extends State<Player> {
     });
     if (_isOverlayVisible) {
       _overlayFocusScopeNode.requestFocus();
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_currentIndex * 60.0);
+      }
     } else {
       _globalFocusScopeNode.requestFocus();
     }
@@ -258,33 +261,45 @@ class _PlayerState extends State<Player> {
               // 2. Custom Overlay
               if (_isOverlayVisible)
                 Container(
-                  color: Colors.black.withOpacity(0.6), // Dim the video
-                  child: Row(
-                    children: [
-                      // Left: Channel List
-                      Expanded(
-                        flex: 3,
-                        child: FocusScope(
-                          node: _overlayFocusScopeNode,
+                  color: Colors.black.withOpacity(0.85), // Darker transparent background
+                  child: FocusScope(
+                    node: _overlayFocusScopeNode,
+                    child: Row(
+                      children: [
+                        // Left: Channel List
+                        Expanded(
+                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Padding(
-                                padding: EdgeInsets.all(24.0),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.arrow_back, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text('Back', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Spacer(),
-                                    Icon(Icons.public, color: Colors.white54),
-                                    SizedBox(width: 8),
-                                    Text('Persian', style: TextStyle(color: Colors.white54, fontSize: 18)),
-                                    Spacer(),
-                                    Icon(Icons.visibility, color: Colors.white54),
-                                    SizedBox(width: 4),
-                                    Text('ch: 7', style: TextStyle(color: Colors.white54, fontSize: 14)),
-                                  ],
+                              Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: _FocusableItem(
+                                  onTap: () => Navigator.pop(context),
+                                  builder: (context, isFocused) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isFocused ? widget.themeColor : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.arrow_back, color: isFocused ? Colors.black : Colors.white),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Back to Dashboard', 
+                                            style: TextStyle(
+                                              color: isFocused ? Colors.black : Colors.white, 
+                                              fontSize: 18, 
+                                              fontWeight: FontWeight.bold
+                                            )
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                               Expanded(
@@ -300,7 +315,6 @@ class _PlayerState extends State<Player> {
                           ),
                         ),
                       ),
-                      
                       // Right: Action Menu Column
                       Container(
                         width: 90,
@@ -311,18 +325,19 @@ class _PlayerState extends State<Player> {
                             _buildActionIcon(Icons.menu, '', () {}),
                             _buildActionIcon(Icons.search, 'Search', () {}),
                             _buildActionIcon(Icons.category, 'Type', () {}),
-                            _buildActionIcon(Icons.favorite, 'Add to Fav', () {}),
-                            _buildActionIcon(Icons.list, 'Fav list', () {}),
-                            _buildActionIcon(Icons.schedule, 'Time shift', () {}),
+                            _buildActionIcon(Icons.favorite, 'Fav', () {}),
+                            _buildActionIcon(Icons.list, 'List', () {}),
+                            _buildActionIcon(Icons.schedule, 'Time', () {}),
                             _buildActionIcon(Icons.skip_next, 'Next', () => _zap(1)),
-                            _buildActionIcon(Icons.skip_previous, 'Previous', () => _zap(-1)),
+                            _buildActionIcon(Icons.skip_previous, 'Prev', () => _zap(-1)),
                           ],
                         ),
                       ),
                       
                       // Empty space to right (to match ratio from picture)
                       Expanded(flex: 4, child: Container()),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -355,6 +370,8 @@ class _FocusableItemState extends State<_FocusableItem> {
         if (event is RawKeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.select ||
              event.logicalKey == LogicalKeyboardKey.enter ||
+             event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+             event.logicalKey == LogicalKeyboardKey.space ||
              event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
           widget.onTap();
           return KeyEventResult.handled;
