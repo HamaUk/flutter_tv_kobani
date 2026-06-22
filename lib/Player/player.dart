@@ -314,7 +314,6 @@ class _PlayerState extends State<Player> {
                             ],
                           ),
                         ),
-                      ),
                       // Right: Action Menu Column
                       Container(
                         width: 90,
