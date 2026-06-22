@@ -109,7 +109,11 @@ class _PlayerState extends State<Player> {
       
       // If overlay is hidden, OK button opens it. UP/DOWN zaps.
       if (!_isOverlayVisible) {
-        if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.gameButtonA) {
+        if (key == LogicalKeyboardKey.select || 
+            key == LogicalKeyboardKey.enter || 
+            key == LogicalKeyboardKey.numpadEnter || 
+            key == LogicalKeyboardKey.space || 
+            key == LogicalKeyboardKey.gameButtonA) {
           _toggleOverlay();
           return KeyEventResult.handled;
         } else if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.channelUp) {
@@ -237,7 +241,9 @@ class _PlayerState extends State<Player> {
             children: [
               // 1. The Video Player
               SafeArea(
-                child: BetterPlayer(controller: _betterPlayerController),
+                child: ExcludeFocus(
+                  child: BetterPlayer(controller: _betterPlayerController),
+                ),
               ),
               
               // 2. Custom Overlay

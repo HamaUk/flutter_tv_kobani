@@ -23,14 +23,20 @@ class _HomeState extends ConsumerState<Home> {
   int _navIndex = 0; // 0: Live, 1: Movies, 2: Settings
   String? _selectedCategory;
 
-  final FocusNode _firstCategoryFocusNode = FocusNode();
-  final FocusNode _selectedCategoryFocusNode = FocusNode();
+  final Map<String, FocusNode> _categoryNodes = {};
+  final FocusNode _liveTvFocusNode = FocusNode();
+  final FocusNode _moviesFocusNode = FocusNode();
+  final FocusNode _settingsFocusNode = FocusNode();
   bool _initialized = false;
 
   @override
   void dispose() {
-    _firstCategoryFocusNode.dispose();
-    _selectedCategoryFocusNode.dispose();
+    for (var node in _categoryNodes.values) {
+      node.dispose();
+    }
+    _liveTvFocusNode.dispose();
+    _moviesFocusNode.dispose();
+    _settingsFocusNode.dispose();
     super.dispose();
   }
 
@@ -147,6 +153,7 @@ class _HomeState extends ConsumerState<Home> {
           Image.asset('assets/images/flut.png', width: 60, height: 60),
           const SizedBox(height: 40),
           _SidebarItem(
+            focusNode: _liveTvFocusNode,
             themeColor: themeColor,
             icon: Icons.live_tv_rounded,
             label: Localization.t('live_tv', lang),
@@ -154,11 +161,14 @@ class _HomeState extends ConsumerState<Home> {
             onFocus: () => setState(() { _navIndex = 0; _selectedCategory = null; }),
             onTap: () {
               setState(() { _navIndex = 0; _selectedCategory = null; });
-              _firstCategoryFocusNode.requestFocus();
+              if (_categoryNodes.isNotEmpty) _categoryNodes.values.first.requestFocus();
             },
-            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
+            onMoveRight: () {
+              if (_categoryNodes.isNotEmpty) _categoryNodes.values.first.requestFocus();
+            },
           ),
           _SidebarItem(
+            focusNode: _moviesFocusNode,
             themeColor: themeColor,
             icon: Icons.movie_creation_rounded,
             label: Localization.t('movies', lang),
@@ -166,18 +176,22 @@ class _HomeState extends ConsumerState<Home> {
             onFocus: () => setState(() { _navIndex = 1; _selectedCategory = null; }),
             onTap: () {
               setState(() { _navIndex = 1; _selectedCategory = null; });
-              _firstCategoryFocusNode.requestFocus();
+              if (_categoryNodes.isNotEmpty) _categoryNodes.values.first.requestFocus();
             },
-            onMoveRight: () => _firstCategoryFocusNode.requestFocus(),
+            onMoveRight: () {
+              if (_categoryNodes.isNotEmpty) _categoryNodes.values.first.requestFocus();
+            },
           ),
           const Spacer(),
           _SidebarItem(
+            focusNode: _settingsFocusNode,
             themeColor: themeColor,
             icon: Icons.settings_rounded,
             label: Localization.t('settings', lang),
             isSelected: _navIndex == 2,
             onFocus: () => setState(() => _navIndex = 2),
             onTap: () => setState(() => _navIndex = 2),
+            onMoveRight: () {},
           ),
           const SizedBox(height: 20),
         ],
@@ -215,11 +229,16 @@ class _HomeState extends ConsumerState<Home> {
                 final isSelected = _selectedCategory == cat;
                 return _CategoryItem(
                   themeColor: themeColor,
-                  focusNode: isSelected ? _selectedCategoryFocusNode : (index == 0 ? _firstCategoryFocusNode : null),
+                  focusNode: _categoryNodes.putIfAbsent(cat, () => FocusNode()),
                   title: cat,
                   isSelected: isSelected,
                   onFocus: () => setState(() => _selectedCategory = cat),
                   onTap: () => setState(() => _selectedCategory = cat),
+                  onMoveLeft: () {
+                    if (_navIndex == 0) _liveTvFocusNode.requestFocus();
+                    else if (_navIndex == 1) _moviesFocusNode.requestFocus();
+                    else _settingsFocusNode.requestFocus();
+                  },
                 );
               },
             ),
@@ -254,10 +273,10 @@ class _HomeState extends ConsumerState<Home> {
             hardwareDecoding: hardwareDecoding,
             lang: lang,
             onMoveLeft: (index % 5 == 0) ? () {
-              if (_selectedCategory != null) {
-                _selectedCategoryFocusNode.requestFocus();
-              } else {
-                _firstCategoryFocusNode.requestFocus();
+              if (_selectedCategory != null && _categoryNodes.containsKey(_selectedCategory)) {
+                _categoryNodes[_selectedCategory]!.requestFocus();
+              } else if (_categoryNodes.isNotEmpty) {
+                _categoryNodes.values.first.requestFocus();
               }
             } : null,
           );
@@ -485,6 +504,7 @@ class _SidebarItem extends StatefulWidget {
   final VoidCallback onTap;
   final Color themeColor;
   final VoidCallback? onMoveRight;
+  final FocusNode? focusNode;
 
   const _SidebarItem({
     required this.icon,
@@ -494,6 +514,7 @@ class _SidebarItem extends StatefulWidget {
     required this.onTap,
     required this.themeColor,
     this.onMoveRight,
+    this.focusNode,
   });
 
   @override
@@ -503,11 +524,17 @@ class _SidebarItem extends StatefulWidget {
 class _SidebarItemState extends State<_SidebarItem> {
   bool _isFocused = false;
 
-  final FocusNode _focusNode = FocusNode();
+  late FocusNode _localFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _localFocusNode = widget.focusNode ?? FocusNode();
+  }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (widget.focusNode == null) _localFocusNode.dispose();
     super.dispose();
   }
 
@@ -532,7 +559,7 @@ class _SidebarItemState extends State<_SidebarItem> {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      focusNode: _focusNode,
+      focusNode: _localFocusNode,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
         if (focused) widget.onFocus();
@@ -578,20 +605,22 @@ class _SidebarItemState extends State<_SidebarItem> {
 }
 
 class _CategoryItem extends StatefulWidget {
-  final FocusNode? focusNode;
   final String title;
   final bool isSelected;
   final VoidCallback onFocus;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
   final Color themeColor;
+  final VoidCallback? onMoveLeft;
 
   const _CategoryItem({
-    this.focusNode,
     required this.title,
     required this.isSelected,
     required this.onFocus,
     required this.onTap,
     required this.themeColor,
+    this.focusNode,
+    this.onMoveLeft,
   });
 
   @override
@@ -625,6 +654,9 @@ class _CategoryItemState extends State<_CategoryItem> {
           key == LogicalKeyboardKey.gameButtonA ||
           key == LogicalKeyboardKey.space) {
         widget.onTap();
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowLeft && widget.onMoveLeft != null) {
+        widget.onMoveLeft!();
         return KeyEventResult.handled;
       }
     }
