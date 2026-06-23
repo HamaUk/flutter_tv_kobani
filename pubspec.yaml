@@ -1,41 +1,50 @@
 name: kobani4k
 description: KOBANI 4K TV App
-
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.2
-  google_fonts: ^6.1.0
-  intl: ^0.18.0
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
   flutter_staggered_animations: ^1.1.1
-  http: ^1.6.0
-  either_dart: ^0.3.0
   loading_animation_widget: ^1.2.0+4
   carousel_slider: ^4.2.1
   cached_network_image: ^3.3.1
-  better_player: ^0.0.84
-  lottie: ^3.0.0
-  shared_preferences: ^2.2.2
-  firebase_core: ^2.32.0
-  firebase_database: ^10.5.5
-  flutter_riverpod: ^2.5.1
+  lottie: ^3.1.0
   transparent_image: ^2.0.1
-  
-  dpad: ^2.0.2                    # Compatible version for your current Dart SDK
+
+  # Networking
+  http: ^1.2.1
+  either_dart: ^0.3.0
+
+  # Video player — better_player is no longer maintained;
+  # use media_kit which supports hardware decoding on Android TV.
+  media_kit: ^1.1.10
+  media_kit_video: ^1.2.4
+  media_kit_libs_android_video: ^1.3.2   # native libs for Android/TV
+
+  # State & Storage
+  flutter_riverpod: ^2.5.1
+  shared_preferences: ^2.3.1
+
+  # Firebase
+  firebase_core: ^3.3.0
+  firebase_database: ^11.1.0
+
+  # Locale
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  flutter_lints: ^2.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
