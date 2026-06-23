@@ -27,8 +27,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.kobani4k.app"
-    compileSdkVersion 34
-
+    compileSdkVersion 36        // bumped: media_kit_video + media_kit_libs require 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -46,28 +45,15 @@ android {
 
     defaultConfig {
         applicationId "com.kobani4k.app"
-        minSdkVersion 21                    // Good for TV compatibility
-        targetSdkVersion 34
+        minSdkVersion 21
+        targetSdkVersion 36     // bumped to match compileSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-
-        // TV App Optimizations
-        manifestPlaceholders = [appLabel: "KOBANI 4K"]
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug   // Change to release signing later
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-
-    // Better performance for video streaming
-    packagingOptions {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            signingConfig signingConfigs.debug
         }
     }
 }
@@ -78,7 +64,6 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    // Add any additional dependencies here if needed
 }
 
 apply plugin: 'com.google.gms.google-services'
